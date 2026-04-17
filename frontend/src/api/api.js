@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://localhost:5000/api', // adjust if port changes
+  baseURL: 'https://authsenthinel.onrender.com/api', // adjust if port changes
   timeout: 10000,
 });
 
