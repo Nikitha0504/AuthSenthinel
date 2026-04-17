@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://localhost:5000/api', // adjust if port changes
+  baseURL: 'https://authsenthinel.onrender.com/api',
   timeout: 10000,
 });
 
@@ -39,7 +39,7 @@ api.interceptors.response.use(
 
         // Save new access token
         localStorage.setItem('accessToken', data.accessToken);
-        
+
         // Retry the original request
         originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
         return api(originalRequest);
