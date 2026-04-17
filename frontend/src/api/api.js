@@ -33,7 +33,7 @@ api.interceptors.response.use(
         }
 
         // Call refresh endpoint
-        const { data } = await axios.post('http://localhost:5000/api/auth/refresh', {
+        const { data } = await axios.post('https://authsenthinel.onrender.com/api/auth/refresh', {
           refreshToken,
         });
 
