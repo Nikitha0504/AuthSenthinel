@@ -1,0 +1,113 @@
+AuthSentinel Components Explanation
+===================================
+Here is an overview of every file and module created in the project, split cleanly across backend and frontend, answering what each file does.
+
+--------------------
+1. Backend Structure
+--------------------
+backend/package.json
+- The NPM configuration file containing backend dependencies (Express, node, socket.io, mongoose, jsonwebtoken).
+
+backend/.env
+- Stores secrets (MongoDB URI, JWT secret keys, and port configurations).
+
+backend/src/app.js
+- The main entry point of the server. Bootstraps the Express app, mounts MongoDB connection, mounts routers, and initializes Socket.io for the live feed.
+
+backend/seed.js
+- A utility script used to pump synthetic authentication events into the database, generating users, logs, and automatically triggering alerts. Useful for populating the system with data without manual generation.
+
+[Auth Module]
+backend/src/auth/User.js
+- Mongoose schema representing the user structure (email, password hash, role). Uses bcrypt pre-save formatting to salt/hash passwords automatically.
+
+backend/src/auth/authController.js
+- Business logic for the `/api/auth` endpoints. Implements the `/register`, `/login`, `/refresh`, and `/me` routes while assigning access & refresh tokens out.
+
+backend/src/auth/authRoutes.js
+- Maps express router URLs to authController logic.
+
+backend/src/auth/middleware.js
+- Essential JWT validation. Contains `authenticate` and `requireAdmin` logic ensuring endpoints are secure.
+
+[Log Ingestion]
+backend/src/logs/Log.js
+- Storage schema containing authentication events payload and its corresponding "analysis" sub-document (e.g., event reason, appID, timestamp).
+
+backend/src/logs/logController.js
+- Where external devices POST their raw events. Ingests those events, pushes them live via Socket.io simultaneously, runs the Alert logic asynchronously, and returns an ID.
+
+backend/src/logs/logRoutes.js
+- Express router mapping URLs to the logController logic.
+
+[Analyzer / Intelligence]
+backend/src/analyzer/errorMap.js
+- A dictionary containing human-readable interpretations for vague auth exceptions. E.g., interpreting `TOKEN_INVALID` to "Token Tampered or Malformed" giving human solutions. 
+
+backend/src/analyzer/analyzer.js
+- Functional wrapping taking a log and appending the corresponding errorMap data on it.
+
+[Alerts Module]
+backend/src/alerts/Alert.js
+- Database schema mapping an alert object indicating rule breaking, time triggered, whether resolved or not.
+
+backend/src/alerts/alertEngine.js
+- The complex sliding-window detection mechanism. Asynchronously checks four strict parameters globally requested in the PRD (Credential Stuffing, Lockout Spike, Token Flood, Brute Force). Scans historical sliding windows without degrading API speed.
+
+backend/src/alerts/alertController.js
+- Logic delivering aggregate outputs, paginated lists, and toggling logic determining whether an Alert is "resolved" to the frontend.
+
+backend/src/alerts/alertRoutes.js
+- Maps Express APIs to the alert controllers.
+
+[Analytics Engine]
+backend/src/analytics/analyticsController.js
+- Executes massive aggregate functions via Mongoose aggregations (grouping top offenders, building donut charts logic, mapping success versus failure timelines). Exposes endpoints rendering the frontend dashboard charts.
+
+backend/src/analytics/analyticsRoutes.js
+- Maps analytical logic to the router stack.
+
+[Tools]
+backend/src/tools/jwtController.js + jwtRoutes.js
+- Safely decrypts JWT payloads completely server side, verifying structures manually without pushing your raw variables to Third Party decoders. Exposes errors like missing "exp" tags.
+
+
+---------------------
+2. Frontend Structure
+---------------------
+frontend/package.json
+- Vite configuration bundling react alongside Recharts, React-Router-DOM, Lucide-React (icons).
+
+frontend/src/index.css
+- Global aesthetics implementation. Employs CSS Variables (dark theme), custom backdrop blurring to recreate glassmorphism panels mimicking Auth0/Okta security structures. Provides specialized `.glass-card` styling for UI presentation.
+
+frontend/src/main.jsx
+- The standard React mounting location injecting strict DOM requirements combined with context wrapping.
+
+frontend/src/App.jsx
+- Layout and navigation controller mapping protected UI URLs to individual pages (Login view vs inside the admin panel sidebars).
+
+frontend/src/api/api.js
+- Global Axios client configuration automating Authentication behaviors. Attaches Bearer payloads to headers dynamically, and implements an interrupter automatically reviving your session if the Access token fades but the Refresh Token lives. 
+
+frontend/src/context/AuthContext.jsx
+- Higher order wrapper retaining user states globally avoiding prop-drilling allowing components instantaneous detection if a user is online.
+
+[Pages - Actual Visual Elements]
+frontend/src/pages/Login.jsx
+- Glassmorphed dual-switch UI permitting Authentication or Profile creation allowing administrators to inject into the console UI. 
+
+frontend/src/pages/Dashboard.jsx
+- Core PRD visual layout binding Analytics data locally to top grid cards displaying errors dynamically. Directly establishes socket connection with the backend reflecting POST logs sequentially on a downward graph structure instantly.
+
+frontend/src/pages/LogViewer.jsx
+- Comprehensive debugging structure allowing users to search queries selectively, rendering lists of specific raw metadata. Includes visual drawers displaying deeper metadata payloads mimicking standard Elastic/Splunk UX flows securely.
+
+frontend/src/pages/Alerts.jsx
+- Incident response tracking. Fetches alerts from rule infractions generated by the sliding window detection matrix. Tracks incidents permitting operators validation to resolve specific threat alerts dynamically visually changing internal indicators to closed tags securely.
+
+frontend/src/pages/TokenInspector.jsx
+- Paste tool bypassing insecure tools. Breaks structure securely pushing responses describing specifically why tokens expire natively displaying errors safely minimizing API surface bleed.
+
+frontend/src/components/MetricCard.jsx
+- Standalone reusable component rendering statistical numeric comparisons displaying percentage deviations visually up or down.
